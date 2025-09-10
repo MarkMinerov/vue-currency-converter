@@ -1,0 +1,79 @@
+{
+  "name": "vue-currency-converter",
+  "version": "0.0.0",
+  "type": "module",
+  "author": {
+    "name": "Mark Minerov",
+    "email": "markminerov123@gmail.com",
+    "url": "https://github.com/MarkMinerov"
+  },
+  "homepage": "https://markminerov.github.io/vue-currency-converter",
+  "description": "A flexible and fully customizable Vue 3 component for currency conversion and formatting.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/MarkMinerov/vue-currency-converter"
+  },
+  "keywords": [
+    "vue3",
+    "vue",
+    "vue-component",
+    "currency-converter",
+    "currency-formatter",
+    "curr-input",
+    "vue3-component",
+    "vue3-currency-input",
+    "vue3-curr-input",
+    "vue-curr-num-input",
+    "vue3-telephone-input",
+    "vue3-curr-input",
+    "vue3-curr-num-input"
+  ],
+  "main": "./dist/index.cjs.js",
+  "module": "./dist/index.es.js",
+  "style": "dist/css/style.css",
+  "types": "./dist/types/index.d.ts",
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "dist"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/types/index.d.ts",
+      "import": "./dist/index.es.js",
+      "require": "./dist/index.cjs.js"
+    },
+    "./style.css": "./dist/css/style.css"
+  },
+  "scripts": {
+    "clean": "rimraf dist",
+    "dev": "vite",
+    "watch:build": "vite build --watch",
+    "build": "npm-run-all clean build:once",
+    "build:once": "vite build",
+    "preview": "vite preview",
+    "docs:dev": "vitepress dev docs",
+    "docs:build": "vitepress build docs",
+    "docs:preview": "vitepress preview docs"
+  },
+  "peerDependencies": {
+    "vue": "^3.5.18"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "^6.0.1",
+    "@vue/tsconfig": "^0.7.0",
+    "typescript": "~5.8.3",
+    "vite": "^7.1.2",
+    "vue-tsc": "^3.0.5",
+    "@types/node": "^24.3.0",
+    "concurrently": "^9.2.1",
+    "npm-run-all": "^4.1.5",
+    "rimraf": "^6.0.1",
+    "rollup-plugin-visualizer": "^6.0.3",
+    "sass": "^1.92.0",
+    "vite-plugin-dts": "^4.2.1",
+    "vitepress": "^2.0.0-alpha.12"
+  }
+}
