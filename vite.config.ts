@@ -4,7 +4,7 @@ import dts from "vite-plugin-dts";
 import path from "path";
 import { visualizer } from "rollup-plugin-visualizer";
 
-const externals = ["vue", "libphonenumber-js"];
+const externals = ["vue"];
 
 export default defineConfig({
   plugins: [
@@ -28,10 +28,8 @@ export default defineConfig({
         chunkFileNames: "chunks/[name]-[hash].js",
         assetFileNames: (asset) => {
           const names = asset.names ?? (asset.name ? [asset.name] : []);
-          if (names.some((n) => n.endsWith(".css"))) {
-            if (names.some((n) => /sprite/i.test(n))) return "css/sprite.css";
-            return "css/style.css";
-          }
+          if (names.some((n) => n.endsWith(".css"))) return "css/style.css";
+
           if (names.some((n) => /\.(png|jpe?g|svg|webp)$/i.test(n))) {
             if (names.some((n) => /sprite/i.test(n)))
               return "flags/[name][extname]";
