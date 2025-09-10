@@ -1,15 +1,30 @@
 <template>
   <div
     class="currency-input"
-    ref="currencyInput"
-    :class="{ open: dropdownOpen }"
+    ref="currencyComp"
+    :class="{
+      open: dropdownOpen && !listConfig?.openBlocked,
+      reverse: listConfig?.reverse,
+    }"
   >
-    <input type="text" />
+    <input
+      type="text"
+      ref="currencyInput"
+      :value="modelValue"
+      :placeholder="currencyConfig.symbol"
+      @input="
+        emit('update:modelValue', ($event?.target as HTMLInputElement)?.value)
+      "
+    />
 
     <div class="curr-selector">
       <div class="curr-header" @click="switchDropdown()">
         <span class="curr-code">{{ selectedCurrency }}</span>
-        <svg class="curr-header__chevron" viewBox="0 0 16 16">
+        <svg
+          v-if="!listConfig?.openBlocked"
+          class="curr-header__chevron"
+          viewBox="0 0 16 16"
+        >
           <path
             d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"
           />
@@ -60,15 +75,20 @@ const props = withDefaults(
   defineProps<
     Partial<{
       initialCode: CurrencyCode;
-      listConfig: ListParams;
+      listConfig: Partial<ListParams>;
       itemHeight: number;
       size: Size;
+      modelValue: string;
     }>
   >(),
   {
     initialCode: "USD",
     listConfig: () => ({
+      modelValue: "",
       itemsPerView: DEFAULT_ITEMS_PER_VIEW,
+      reverse: false,
+      useFormat: true,
+      openBlocked: false,
       item: {
         hideCode: false,
         hideName: false,
@@ -78,6 +98,10 @@ const props = withDefaults(
   }
 );
 
+const emit = defineEmits<{
+  (e: "update:modelValue", value: string): void;
+}>();
+
 const rowSizes = {
   sm: 32,
   md: 36,
@@ -86,13 +110,14 @@ const rowSizes = {
   xxl: 56,
 };
 
-const currencyInput = useTemplateRef<HTMLElement>("currencyInput");
+const currencyComp = useTemplateRef<HTMLElement>("currencyComp");
+const currencyInput = useTemplateRef<HTMLInputElement>("currencyInput");
 
-onClickOutside(currencyInput, () => {
+onClickOutside(currencyComp, () => {
   dropdownOpen.value = false;
 });
 
-const { initialCode, listConfig, size } = toRefs(props);
+const { initialCode, listConfig, size, modelValue } = toRefs(props);
 
 const selectedCurrency = ref<CurrencyCode>(initialCode.value);
 const dropdownOpen = ref(false);
@@ -119,6 +144,7 @@ const listHeight = computed(
 const animationName = computed(() => listConfig.value.animationName || "fade");
 
 const switchDropdown = (value?: boolean) => {
+  if (listConfig.value.openBlocked) return;
   dropdownOpen.value = value != null ? value : !dropdownOpen.value;
 };
 
@@ -126,6 +152,10 @@ const selectItem = (item: CurrencyConfig) => {
   selectedCurrency.value = item.code as CurrencyCode;
   switchDropdown(false);
 };
+
+defineExpose({
+  currencyInput,
+});
 </script>
 
 <style lang="scss" scoped>
@@ -134,16 +164,24 @@ const selectItem = (item: CurrencyConfig) => {
   display: flex;
   flex-direction: row;
   background-color: var(--currency-input-bg, #fff);
-  border: var(--currency-input-border, 1px solid #ccc);
+  border: var(--currency-input-border, none);
   height: 100%;
 
   * {
     box-sizing: border-box;
   }
 
+  &.reverse {
+    flex-direction: row-reverse;
+  }
+
   &.open {
     border-bottom-left-radius: 0 !important;
     border-bottom-right-radius: 0 !important;
+
+    .curr-header__chevron {
+      transform: rotate(180deg);
+    }
   }
 
   input {
@@ -153,7 +191,7 @@ const selectItem = (item: CurrencyConfig) => {
     border: var(--currency-input-field-border, none);
     font-size: var(--currency-input-field-font-size, 1rem);
     padding: var(--currency-input-padding, 0.5rem);
-    border-right: var(--tel-input-border, 1px solid #ccc);
+    border-right: var(--tel-input-border, none);
   }
 
   .curr-selector {
@@ -187,7 +225,7 @@ const selectItem = (item: CurrencyConfig) => {
       overflow-y: auto;
       background-color: var(--currency-input-body-bg, #fff);
       width: 100%;
-      border: var(--currency-input-body-border, 1px solid #ccc);
+      border: var(--currency-input-body-border, none);
       box-shadow: var(
         --currency-input-body-shadow,
         0 2px 8px rgba(0, 0, 0, 0.15)
@@ -196,13 +234,16 @@ const selectItem = (item: CurrencyConfig) => {
       border-bottom-right-radius: var(--currency-input-border-radius, 6px);
 
       &::-webkit-scrollbar {
-        width: 8px;
-        background: transparent;
+        width: var(--currency-input-scrollbar-width, 8px);
+        background: var(--currency-input-scrollbar-bg, transparent);
         position: absolute;
       }
       &::-webkit-scrollbar-thumb {
-        background: rgba(0, 0, 0, 0.2);
-        border-radius: 4px;
+        background: var(
+          --currency-input-scrollbar-thumb-bg,
+          rgba(0, 0, 0, 0.2)
+        );
+        border-radius: var(--currency-input-scrollbar-thumb-radius, 4px);
       }
 
       .item-row {
@@ -235,13 +276,15 @@ const selectItem = (item: CurrencyConfig) => {
   }
 }
 
-.fade-enter-active,
-.fade-leave-active {
-  transition: opacity 0.2s ease;
-}
+.fade {
+  &-enter-active,
+  &-leave-active {
+    transition: opacity 0.2s ease;
+  }
 
-.fade-enter-from,
-.fade-leave-to {
-  opacity: 0;
+  &-enter-from,
+  &-leave-to {
+    opacity: 0;
+  }
 }
 </style>

@@ -1,3 +1,4 @@
+import { Ref } from "vue";
 import { CurrencyCode } from "~/composables/useCurrency";
 
 export interface CurrencyConfig {
@@ -10,16 +11,42 @@ export interface CurrencyConfig {
   name_plural: string;
 }
 
-export type ListParams = Partial<{
+export type ListParams = {
   itemsPerView: number;
   itemHeight: number;
   availableCurrencies: CurrencyCode[];
   animationName: string;
+  reverse: boolean;
+  useFormat: boolean;
+  openBlocked: boolean;
   item: {
     hideCode: boolean;
     hideName: boolean;
     hideSymbol: boolean;
   };
-}>;
+};
+
+export type ApiData = Partial<
+  Record<CurrencyCode, Record<CurrencyCode, number>>
+>;
+
+export type ApiConfig = {
+  cache: number;
+  fetchOptions: RequestInit;
+  disabled: boolean;
+  boundToAvailable: boolean;
+  url: {
+    base: string;
+    builder: (url: string, code?: CurrencyCode) => string;
+  };
+  setter: (response: any, mutable: Ref<ApiData>) => void;
+};
+
+export type InternalApiData = Ref<ApiData>;
+
+export interface DefaultApiResponse {
+  base_code: CurrencyCode;
+  rates: Record<CurrencyCode, number>;
+}
 
 export type Size = "sm" | "md" | "lg" | "xl" | "xxl";
