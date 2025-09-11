@@ -20,8 +20,6 @@ export const useApi = (api: Ref<Partial<ApiConfig>>) => {
   const getRates = async (code: CurrencyCode) => {
     if (!code) return; // TODO: add warning
 
-    console.log(cache.value);
-
     if (cache.value[code]) {
       const lastCacheTime = cache.value[code];
       if (api.value.cache && Date.now() - lastCacheTime < api.value.cache)

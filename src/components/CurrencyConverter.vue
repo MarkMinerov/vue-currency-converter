@@ -6,7 +6,6 @@
         :size="size"
         :initialCode="defaultCodes[0]"
         :listConfig="listConfig.left"
-        v-model="leftModel"
       />
     </slot>
 
@@ -22,21 +21,13 @@
         :size="size"
         :initialCode="defaultCodes[1]"
         :listConfig="listConfig.right"
-        v-model="rightModel"
       />
     </slot>
   </div>
 </template>
 
 <script setup lang="ts">
-import {
-  computed,
-  toRefs,
-  useTemplateRef,
-  ref,
-  type Ref,
-  onMounted,
-} from "vue";
+import { type Ref, computed, toRefs, useTemplateRef, onMounted } from "vue";
 import { type CurrencyCode } from "~/composables/useCurrency";
 import { useCurrencyAffect } from "~/composables/useCurrencyAffect";
 import {
@@ -52,13 +43,14 @@ import { useApi } from "~/composables/useApi";
 
 const DEFAULT_API_URL = "https://open.er-api.com/v6/latest";
 
-const leftModel = ref<string>("");
-const rightModel = ref<string>("");
-
 export type CurrencyInputInstance = InstanceType<typeof CurrencyInput>;
 
-const leftInput = useTemplateRef<CurrencyInputInstance>("leftInput");
-const rightInput = useTemplateRef<CurrencyInputInstance>("rightInput");
+const left = useTemplateRef<CurrencyInputInstance>("leftInput");
+const right = useTemplateRef<CurrencyInputInstance>("rightInput");
+
+const emit = defineEmits<{
+  (e: "setCurrencies", value: [CurrencyCode, CurrencyCode]): void;
+}>();
 
 const props = withDefaults(
   defineProps<
@@ -85,7 +77,6 @@ const props = withDefaults(
       cache: 60 * 60 * 1000, // 1 hour
       fetchOptions: {},
       disabled: false,
-      boundToAvailable: true, // bound component to available currencies in list
       url: {
         base: DEFAULT_API_URL,
         builder: (url: string, code?: CurrencyCode) => `${url}/${code}`,
@@ -100,25 +91,44 @@ const props = withDefaults(
 );
 
 const { defaultCodes, listConfig, api } = toRefs(props);
+const { data, getRates } = useApi(api);
 
 const swapCurrencies = () => {};
 
-const { data, getRates } = useApi(api);
-
-useCurrencyAffect({
-  inputElement: computed(
-    () => leftInput.value?.currencyInput as HTMLInputElement
-  ),
-  affectedModel: rightModel,
-  useFormat: computed(() => listConfig.value.left?.useFormat ?? true),
+onMounted(() => {
+  defaultCodes.value.forEach(async (code) => await getRates(code));
 });
 
-onMounted(async () => {
-  console.log(await getRates(defaultCodes.value[0]));
+useCurrencyAffect({
+  data,
+  inputElement: computed(() => left.value?.currencyInput as HTMLInputElement),
+  useFormat: computed(() => listConfig.value.left?.useFormat ?? true),
+  currencies: computed(() => ({
+    from: left.value?.model.currency ?? defaultCodes.value[0],
+    to: right.value?.model.currency ?? defaultCodes.value[1],
+  })),
+  affectedModel: computed({
+    get: () => right.value?.model.inputValue || "",
+    set: (val) => {
+      if (right.value) right.value.model.inputValue = val;
+    },
+  }),
+});
 
-  setTimeout(async () => {
-    console.log(await getRates(defaultCodes.value[0]));
-  }, 2000);
+useCurrencyAffect({
+  data,
+  inputElement: computed(() => right.value?.currencyInput as HTMLInputElement),
+  useFormat: computed(() => listConfig.value.right?.useFormat ?? true),
+  currencies: computed(() => ({
+    from: right.value?.model.currency ?? defaultCodes.value[1],
+    to: left.value?.model.currency ?? defaultCodes.value[0],
+  })),
+  affectedModel: computed({
+    get: () => left.value?.model.inputValue || "",
+    set: (val) => {
+      if (left.value) left.value.model.inputValue = val;
+    },
+  }),
 });
 
 // Left Selector + dropdown + input

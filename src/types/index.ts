@@ -34,7 +34,6 @@ export type ApiConfig = {
   cache: number;
   fetchOptions: RequestInit;
   disabled: boolean;
-  boundToAvailable: boolean;
   url: {
     base: string;
     builder: (url: string, code?: CurrencyCode) => string;
