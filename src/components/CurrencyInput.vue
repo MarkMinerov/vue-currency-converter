@@ -74,7 +74,15 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, computed, useTemplateRef, reactive, watch } from "vue";
+import {
+  ref,
+  toRefs,
+  computed,
+  useTemplateRef,
+  reactive,
+  watch,
+  onMounted,
+} from "vue";
 import { onClickOutside } from "~/composables/onClickOutside";
 import { CurrencyCode, useCurrency } from "~/composables/useCurrency";
 import { CurrencyConfig, CurrencyInputModel, ListParams, Size } from "~/types";
@@ -146,7 +154,7 @@ const availableCurrencies = computed(
 );
 
 const { currencyConfig, filteredCurrencies } = useCurrency({
-  code: computed(() => modelValue.value.currency as CurrencyCode),
+  code: computed(() => modelValue.value.currency),
   availableCurrencies,
 });
 
@@ -183,6 +191,21 @@ const selectItem = (item: CurrencyConfig) => {
     currency: item.code,
   });
 };
+
+onMounted(() => {
+  if (
+    filteredCurrencies.value?.length &&
+    !filteredCurrencies.value.find((c) => c.code === modelValue.value.currency)
+  ) {
+    console.warn(
+      `[vue-currency-converter]: Provided currency "${modelValue.value.currency}" is not in the availableCurrencies list. The first available currency will be used instead.`
+    );
+    emit("update:modelValue", {
+      value: modelValue.value.value,
+      currency: filteredCurrencies.value[0].code,
+    });
+  }
+});
 </script>
 
 <style lang="scss" scoped>

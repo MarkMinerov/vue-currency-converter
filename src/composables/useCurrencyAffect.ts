@@ -7,11 +7,13 @@ const currenciesConfig = currencyJson as Record<string, CurrencyConfig>;
 
 export function useCurrencyAffect({
   data,
+  focused,
   affectedModel,
   currencies,
   modelValue,
 }: {
   data: Ref<ApiData>;
+  focused: Ref<boolean>;
   affectedModel: Ref<string>;
   currencies: ComputedRef<{ from: CurrencyCode; to: CurrencyCode }>;
   modelValue: ComputedRef<string>;
@@ -27,6 +29,8 @@ export function useCurrencyAffect({
       const decimal_digits = currenciesConfig[from]?.decimal_digits || 2;
       const conversionRate = data.value?.[from]?.[to];
 
+      console.log({ from, to, value, conversionRate });
+
       if (conversionRate) {
         const val = value * conversionRate;
         affectedModel.value = val.toFixed(decimal_digits);
@@ -41,7 +45,12 @@ export function useCurrencyAffect({
     affectedModel.value = "";
   };
 
-  watch(() => modelValue.value, convert);
+  watch(
+    () => modelValue.value,
+    () => {
+      if (focused.value) convert();
+    }
+  );
 
   const unknown = computed(
     () => !data.value?.[currencies.value.from]?.[currencies.value.to]

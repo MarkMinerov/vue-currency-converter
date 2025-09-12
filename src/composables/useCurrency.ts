@@ -13,14 +13,23 @@ export const useCurrency = ({
   availableCurrencies,
 }: {
   code: Ref<CurrencyCode>;
-  availableCurrencies: Ref<CurrencyCode[]> | null;
+  availableCurrencies: Ref<CurrencyCode[]>;
 }) => {
   const currencyConfig = computed(() => currencies[code.value]);
 
   const filteredCurrencies = computed(() => {
-    if (availableCurrencies?.value && availableCurrencies.value.length) {
+    if (availableCurrencies.value.length) {
       return availableCurrencies.value
-        .filter((code) => keys.includes(code))
+        .filter((code) => {
+          if (!keys.includes(code)) {
+            console.warn(
+              `[vue-currency-converter] The currency code "${code}" is not supported. Please open an issue on GitHub: https://github.com/MarkMinerov/vue-currency-converter/issues if you need support for this currency.`
+            );
+            return false;
+          }
+
+          return true;
+        })
         .map((code) => currencies[code]);
     }
 

@@ -1,12 +1,11 @@
 <template>
   <div class="currency-converter" :class="sizeClass">
     <slot name="left-input">
-      {{ disabled }} {{ unknown }}
       <CurrencyInput
         v-model="leftModel"
         :size="size"
         :disabled="disabled"
-        :listConfig="listConfig.left"
+        :listConfig="listConfig.from"
         @focus="modelValue.hasFocus[0] = true"
         @blur="modelValue.hasFocus[0] = false"
       >
@@ -39,7 +38,7 @@
         v-model="rightModel"
         :size="size"
         :disabled="disabled"
-        :listConfig="listConfig.right"
+        :listConfig="listConfig.to"
         @focus="modelValue.hasFocus[1] = true"
         @blur="modelValue.hasFocus[1] = false"
       >
@@ -104,8 +103,8 @@ const props = withDefaults(
       disableInputOnUnknown: boolean;
       api: Partial<ApiConfig>;
       listConfig: Partial<{
-        left: Partial<ListParams>;
-        right: Partial<ListParams>;
+        from: Partial<ListParams>;
+        to: Partial<ListParams>;
       }>;
     }>
   >(),
@@ -117,8 +116,8 @@ const props = withDefaults(
     }),
     disableInputOnUnknown: true,
     listConfig: () => ({
-      left: {},
-      right: {},
+      from: {},
+      to: {},
     }),
     api: () => ({
       cache: 60 * 60 * 1000, // 1 hour
@@ -153,8 +152,10 @@ const leftModel = computed({
     value: modelValue.values[0].toString(),
   }),
   set: (val) => {
-    modelValue.currencies[0] = val.currency;
-    modelValue.values[0] = val.value ? `${parseFloat(val.value)}` : "";
+    if (val.currency != modelValue.currencies[0])
+      modelValue.currencies[0] = val.currency;
+    if (val.value != modelValue.values[0])
+      modelValue.values[0] = val.value ? `${parseFloat(val.value)}` : "";
   },
 });
 
@@ -164,8 +165,10 @@ const rightModel = computed({
     value: modelValue.values[1].toString(),
   }),
   set: (val) => {
-    modelValue.currencies[1] = val.currency;
-    modelValue.values[1] = val.value ? `${parseFloat(val.value)}` : "";
+    if (val.currency != modelValue.currencies[1])
+      modelValue.currencies[1] = val.currency;
+    if (val.value != modelValue.values[1])
+      modelValue.values[1] = val.value ? `${parseFloat(val.value)}` : "";
   },
 });
 
@@ -184,45 +187,49 @@ const requestRates = async (code: CurrencyCode) => {
 const sizeClass = computed(() => `currency-converter--${size.value}`);
 const disabled = computed(() => unknown.value && disableInputOnUnknown.value);
 
-watch(
-  modelValue.currencies,
-  (newVal) => {
-    emit("setCurrencies", newVal);
-    newVal.forEach(async (code) => requestRates(code));
-  },
-  { immediate: true }
-);
+watch(modelValue.currencies, (newVal) => emit("setCurrencies", newVal));
 
-const { unknown } = useCurrencyAffect({
+const { unknown, convert: lConvert } = useCurrencyAffect({
   data,
+  focused: computed(() => modelValue.hasFocus[0]),
   modelValue: computed(() => leftModel.value.value),
   currencies: computed(() => ({
     from: leftModel.value.currency,
     to: rightModel.value.currency,
   })),
   affectedModel: computed({
-    get: () => rightModel.value.value || "",
-    set: (val) => {
-      rightModel.value.value = val;
-    },
+    get: () => rightModel.value.value,
+    set: (val) =>
+      (rightModel.value = { currency: rightModel.value.currency, value: val }),
   }),
 });
 
-// useCurrencyAffect({
-//   data,
-//   inputElement: computed(() => right.value?.currencyInput as HTMLInputElement),
-//   modelValue: computed(() => modelValue.values[1]),
-//   currencies: computed(() => ({
-//     from: right.value?.model.currency!,
-//     to: left.value?.model.currency!,
-//   })),
-//   affectedModel: computed({
-//     get: () => modelValue.values[1] || "",
-//     set: (val) => {
-//       if (left.value) modelValue.values[1] = val;
-//     },
-//   }),
-// });
+const { convert: rConvert } = useCurrencyAffect({
+  data,
+  focused: computed(() => modelValue.hasFocus[1]),
+  modelValue: computed(() => rightModel.value.value),
+  currencies: computed(() => ({
+    from: rightModel.value.currency,
+    to: leftModel.value.currency,
+  })),
+  affectedModel: computed({
+    get: () => leftModel.value.value,
+    set: (val) =>
+      (leftModel.value = { currency: leftModel.value.currency, value: val }),
+  }),
+});
+
+watch(
+  () => leftModel.value.currency,
+  (newVal) => requestRates(newVal).then(rConvert),
+  { immediate: true }
+);
+
+watch(
+  () => rightModel.value.currency,
+  (newVal) => requestRates(newVal).then(lConvert),
+  { immediate: true }
+);
 
 emit("update:modelValue", modelValue);
 </script>
