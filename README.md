@@ -220,7 +220,3 @@ Your feedback will help improve and stabilize the component for production use.
 ## License
 
 MIT © 2025 Mark Minerov
-
-```
-
-```
