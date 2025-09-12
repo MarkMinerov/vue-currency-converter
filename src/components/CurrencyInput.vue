@@ -13,8 +13,7 @@
   >
     <input
       type="text"
-      ref="currencyInput"
-      :value="model.inputValue"
+      :value="modelValue.value"
       :placeholder="currencyConfig.symbol"
       @input="setVal($event)"
       :disabled="disabled"
@@ -25,7 +24,7 @@
     <div class="curr-selector">
       <div class="curr-header" @click="switchDropdown()">
         <slot name="header:before" />
-        <span class="curr-code">{{ model.currency }}</span>
+        <span class="curr-code">{{ modelValue.currency }}</span>
         <slot name="header:chevron">
           <svg
             v-if="!listConfig?.openBlocked && filteredCurrencies.length > 1"
@@ -51,7 +50,7 @@
             class="item-row"
             :style="{ height: `${itemHeightComp}px` }"
             :key="item.code"
-            :class="{ selected: item.code === model.currency }"
+            :class="{ selected: item.code === modelValue.currency }"
             @click="selectItem(item)"
           >
             <slot name="item:before" />
@@ -75,17 +74,18 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, computed, useTemplateRef, reactive } from "vue";
+import { ref, toRefs, computed, useTemplateRef, reactive, watch } from "vue";
 import { onClickOutside } from "~/composables/onClickOutside";
 import { CurrencyCode, useCurrency } from "~/composables/useCurrency";
-import { CurrencyConfig, ListParams, Size } from "~/types";
+import { CurrencyConfig, CurrencyInputModel, ListParams, Size } from "~/types";
 
 const DEFAULT_ITEMS_PER_VIEW = 5;
 
 const props = withDefaults(
   defineProps<
-    Partial<{
-      initialCode: CurrencyCode;
+    {
+      modelValue: CurrencyInputModel;
+    } & Partial<{
       listConfig: Partial<ListParams>;
       itemHeight: number;
       size: Size;
@@ -93,7 +93,6 @@ const props = withDefaults(
     }>
   >(),
   {
-    initialCode: "USD",
     disabled: false,
     listConfig: () => ({
       itemsPerView: DEFAULT_ITEMS_PER_VIEW,
@@ -111,7 +110,7 @@ const props = withDefaults(
 
 const emit = defineEmits<{
   (
-    e: "update:inputValue",
+    e: "update:modelValue",
     value: {
       value: string;
       currency: CurrencyCode;
@@ -134,26 +133,20 @@ const rowSizes = {
 };
 
 const currencyComp = useTemplateRef<HTMLElement>("currencyComp");
-const currencyInput = useTemplateRef<HTMLInputElement>("currencyInput");
 
 onClickOutside(currencyComp, () => {
   dropdownOpen.value = false;
 });
 
-const { listConfig, size, disabled } = toRefs(props);
+const { listConfig, size, disabled, modelValue } = toRefs(props);
 const dropdownOpen = ref(false);
-
-const model = reactive({
-  inputValue: "",
-  currency: props.initialCode as CurrencyCode,
-});
 
 const availableCurrencies = computed(
   () => listConfig.value.availableCurrencies || []
 );
 
 const { currencyConfig, filteredCurrencies } = useCurrency({
-  code: computed(() => model.currency),
+  code: computed(() => modelValue.value.currency as CurrencyCode),
   availableCurrencies,
 });
 
@@ -175,18 +168,21 @@ const switchDropdown = (value?: boolean) => {
 };
 
 const setVal = (event: Event) => {
-  model.inputValue = (event?.target as HTMLInputElement)?.value || "";
+  const newVal = (event.target as HTMLInputElement).value;
+
+  emit("update:modelValue", {
+    value: newVal,
+    currency: modelValue.value.currency,
+  });
 };
 
 const selectItem = (item: CurrencyConfig) => {
-  model.currency = item.code as CurrencyCode;
   switchDropdown(false);
+  emit("update:modelValue", {
+    value: modelValue.value.value,
+    currency: item.code,
+  });
 };
-
-defineExpose({
-  currencyInput,
-  model,
-});
 </script>
 
 <style lang="scss" scoped>

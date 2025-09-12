@@ -1,33 +1,23 @@
-import {
-  type ShallowRef,
-  type WritableComputedRef,
-  type ComputedRef,
-  type Ref,
-  watch,
-  computed,
-} from "vue";
+import { type ComputedRef, type Ref, watch, computed } from "vue";
 import type { ApiData, CurrencyConfig } from "~/types";
 import { CurrencyCode } from "./useCurrency";
 
 import currencyJson from "~/configs/currency.json";
-
 const currenciesConfig = currencyJson as Record<string, CurrencyConfig>;
 
 export function useCurrencyAffect({
   data,
-  inputElement,
   affectedModel,
   currencies,
   modelValue,
 }: {
   data: Ref<ApiData>;
-  inputElement: ShallowRef<HTMLInputElement>;
   affectedModel: Ref<string>;
   currencies: ComputedRef<{ from: CurrencyCode; to: CurrencyCode }>;
-  modelValue: WritableComputedRef<number>;
+  modelValue: ComputedRef<string>;
 }) {
-  const handleInput = () => {
-    const value = modelValue.value;
+  const convert = () => {
+    const value = parseFloat(modelValue.value);
 
     if (!isNaN(value) && value != null) {
       const from = currencies.value.from;
@@ -51,27 +41,11 @@ export function useCurrencyAffect({
     affectedModel.value = "";
   };
 
-  const unknown = computed(() => {
-    const from = currencies.value.from;
-    const to = currencies.value.to;
-    const conversionRate = data.value?.[from]?.[to];
+  watch(() => modelValue.value, convert);
 
-    return !conversionRate;
-  });
-
-  watch(
-    inputElement,
-    (el, _, onCleanup) => {
-      if (!el) return;
-
-      el.addEventListener("input", handleInput);
-
-      onCleanup(() => {
-        el.removeEventListener("input", handleInput);
-      });
-    },
-    { immediate: true }
+  const unknown = computed(
+    () => !data.value?.[currencies.value.from]?.[currencies.value.to]
   );
 
-  return { unknown };
+  return { unknown, convert };
 }

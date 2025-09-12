@@ -1,12 +1,12 @@
 <template>
   <div class="currency-converter" :class="sizeClass">
     <slot name="left-input">
+      {{ disabled }} {{ unknown }}
       <CurrencyInput
-        ref="leftInput"
+        v-model="leftModel"
         :size="size"
-        :initialCode="modelValue.currencies[0]"
-        :listConfig="listConfig.left"
         :disabled="disabled"
+        :listConfig="listConfig.left"
         @focus="modelValue.hasFocus[0] = true"
         @blur="modelValue.hasFocus[0] = false"
       >
@@ -32,19 +32,14 @@
       </CurrencyInput>
     </slot>
 
-    <slot name="separator">
-      <button v-if="enableSwap" class="swap-button" @click="swapCurrencies">
-        <slot name="swap-icon">⇄</slot>
-      </button>
-    </slot>
+    <slot name="separator"> </slot>
 
     <slot name="right-input">
       <CurrencyInput
-        ref="rightInput"
+        v-model="rightModel"
         :size="size"
-        :initialCode="modelValue.currencies[1]"
-        :listConfig="listConfig.right"
         :disabled="disabled"
+        :listConfig="listConfig.right"
         @focus="modelValue.hasFocus[1] = true"
         @blur="modelValue.hasFocus[1] = false"
       >
@@ -73,19 +68,13 @@
 </template>
 
 <script setup lang="ts">
-import {
-  type Ref,
-  computed,
-  reactive,
-  toRefs,
-  useTemplateRef,
-  watch,
-} from "vue";
+import { type Ref, computed, reactive, toRefs, watch } from "vue";
 import { type CurrencyCode } from "~/composables/useCurrency";
 import { useCurrencyAffect } from "~/composables/useCurrencyAffect";
 import {
   ApiConfig,
   ApiData,
+  CurrencyInputModel,
   DefaultApiResponse,
   ListParams,
   Model,
@@ -100,14 +89,11 @@ const DEFAULT_API_URL = "https://open.er-api.com/v6/latest";
 
 export type CurrencyInputInstance = InstanceType<typeof CurrencyInput>;
 
-const left = useTemplateRef<CurrencyInputInstance>("leftInput");
-const right = useTemplateRef<CurrencyInputInstance>("rightInput");
-
 const emit = defineEmits<{
   (e: "setCurrencies", value: [CurrencyCode, CurrencyCode]): void;
+  (e: "update:modelValue", value: Model): void;
   (e: "request:error", error: unknown): void;
   (e: "request:success", data: Awaited<ReturnType<typeof getRates>>): void;
-  (e: "update:modelValue", value: Model): void;
 }>();
 
 const props = withDefaults(
@@ -115,23 +101,20 @@ const props = withDefaults(
     { modelValue: Model } & Partial<{
       size: Size;
       disableSizing: boolean;
-      enableSwap: boolean;
       disableInputOnUnknown: boolean;
+      api: Partial<ApiConfig>;
       listConfig: Partial<{
         left: Partial<ListParams>;
         right: Partial<ListParams>;
       }>;
-      api: Partial<ApiConfig>;
     }>
   >(),
   {
     modelValue: () => ({
       currencies: ["USD", "EUR"],
-      values: [0, 0],
-      formatValues: ["", ""],
+      values: ["", ""],
       loading: false,
     }),
-    enableSwap: true,
     disableInputOnUnknown: true,
     listConfig: () => ({
       left: {},
@@ -159,19 +142,32 @@ const { data, getRates } = useApi(api);
 
 const modelValue = reactive<RequiredModel>({
   currencies: props.modelValue.currencies || ["USD", "EUR"],
-  values: props.modelValue.values || [0, 0],
-  formatValues: props.modelValue.formatValues || ["", ""],
-  loading: props.modelValue.loading || false,
+  values: props.modelValue.values || ["", ""],
+  loading: false,
   hasFocus: [false, false],
-  ...props.modelValue,
 });
 
-emit("update:modelValue", modelValue);
+const leftModel = computed({
+  get: (): CurrencyInputModel => ({
+    currency: modelValue.currencies[0],
+    value: modelValue.values[0].toString(),
+  }),
+  set: (val) => {
+    modelValue.currencies[0] = val.currency;
+    modelValue.values[0] = val.value ? `${parseFloat(val.value)}` : "";
+  },
+});
 
-const sizeClass = computed(() => `currency-converter--${size.value}`);
-const disabled = computed(() => unknown.value && disableInputOnUnknown.value);
-
-const swapCurrencies = () => {};
+const rightModel = computed({
+  get: (): CurrencyInputModel => ({
+    currency: modelValue.currencies[1],
+    value: modelValue.values[1].toString(),
+  }),
+  set: (val) => {
+    modelValue.currencies[1] = val.currency;
+    modelValue.values[1] = val.value ? `${parseFloat(val.value)}` : "";
+  },
+});
 
 const requestRates = async (code: CurrencyCode) => {
   try {
@@ -185,78 +181,50 @@ const requestRates = async (code: CurrencyCode) => {
   }
 };
 
-const leftModel = computed(() => left.value?.model);
-const rightModel = computed(() => right.value?.model);
+const sizeClass = computed(() => `currency-converter--${size.value}`);
+const disabled = computed(() => unknown.value && disableInputOnUnknown.value);
 
 watch(
-  () => [leftModel.value?.currency, rightModel.value?.currency],
+  modelValue.currencies,
   (newVal) => {
-    const data = [newVal[0], newVal[1]] as [CurrencyCode, CurrencyCode];
-    modelValue.currencies = data;
-    emit("setCurrencies", data);
-    newVal
-      .filter((code): code is CurrencyCode => code != null)
-      .forEach(async (code) => requestRates(code));
-  }
-);
-
-watch(
-  () => [leftModel.value?.inputValue!, rightModel.value?.inputValue!],
-  (newVal) => {
-    modelValue.values = newVal.map((v) => parseFloat(v) || 0) as [
-      number,
-      number
-    ];
-  }
+    emit("setCurrencies", newVal);
+    newVal.forEach(async (code) => requestRates(code));
+  },
+  { immediate: true }
 );
 
 const { unknown } = useCurrencyAffect({
   data,
-  inputElement: computed(() => left.value?.currencyInput as HTMLInputElement),
+  modelValue: computed(() => leftModel.value.value),
   currencies: computed(() => ({
-    from: left.value?.model.currency!,
-    to: right.value?.model.currency!,
+    from: leftModel.value.currency,
+    to: rightModel.value.currency,
   })),
   affectedModel: computed({
-    get: () => right.value?.model.inputValue || "",
+    get: () => rightModel.value.value || "",
     set: (val) => {
-      if (right.value) right.value.model.inputValue = val;
-    },
-  }),
-  modelValue: computed({
-    get: () => modelValue.values[0],
-    set: (val) => {
-      modelValue.values[0] = val;
+      rightModel.value.value = val;
     },
   }),
 });
 
-useCurrencyAffect({
-  data,
-  inputElement: computed(() => right.value?.currencyInput as HTMLInputElement),
-  currencies: computed(() => ({
-    from: right.value?.model.currency!,
-    to: left.value?.model.currency!,
-  })),
-  affectedModel: computed({
-    get: () => left.value?.model.inputValue || "",
-    set: (val) => {
-      if (left.value) left.value.model.inputValue = val;
-    },
-  }),
-  modelValue: computed({
-    get: () => modelValue.values[1],
-    set: (val) => {
-      modelValue.values[1] = val;
-    },
-  }),
-});
+// useCurrencyAffect({
+//   data,
+//   inputElement: computed(() => right.value?.currencyInput as HTMLInputElement),
+//   modelValue: computed(() => modelValue.values[1]),
+//   currencies: computed(() => ({
+//     from: right.value?.model.currency!,
+//     to: left.value?.model.currency!,
+//   })),
+//   affectedModel: computed({
+//     get: () => modelValue.values[1] || "",
+//     set: (val) => {
+//       if (left.value) modelValue.values[1] = val;
+//     },
+//   }),
+// });
 
-// Left Selector + dropdown + input
-// Right selector
-// Swap button
-// User own API + mapper function
-// Debounce input
+emit("update:modelValue", modelValue);
 </script>
 
 <style lang="scss" scoped>
@@ -285,17 +253,6 @@ useCurrencyAffect({
       border-top-right-radius: var(--currency-converter-border-radius, 6px);
       border-bottom-right-radius: var(--currency-converter-border-radius, 6px);
     }
-  }
-
-  .swap-button {
-    height: 100%;
-    border: var(--currency-converter-swap-border, none);
-    background-color: var(--currency-converter-swap-bg, #fff);
-    color: var(--currency-converter-swap-color, #000);
-    font-weight: var(--currency-converter-swap-font-weight, bold);
-    font-size: var(--currency-converter-swap-font-size, 18px);
-    padding: var(--currency-converter-swap-padding, 0 12px);
-    cursor: pointer;
   }
 }
 </style>

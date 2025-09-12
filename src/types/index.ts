@@ -7,7 +7,7 @@ export interface CurrencyConfig {
   symbol_native: string;
   decimal_digits: number;
   rounding: number;
-  code: string;
+  code: CurrencyCode;
   name_plural: string;
 }
 
@@ -26,6 +26,11 @@ export type ListParams = {
   };
 };
 
+export interface CurrencyInputModel {
+  currency: CurrencyCode;
+  value: string;
+}
+
 export type ApiData = Partial<
   Record<CurrencyCode, Record<CurrencyCode, number>>
 >;
@@ -43,8 +48,7 @@ export type ApiConfig = {
 
 export interface RequiredModel {
   currencies: [CurrencyCode, CurrencyCode];
-  values: [number, number];
-  formatValues: [string, string];
+  values: [string, string];
   hasFocus: [boolean, boolean];
   loading: boolean;
 }
