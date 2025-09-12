@@ -29,8 +29,6 @@ export function useCurrencyAffect({
       const decimal_digits = currenciesConfig[from]?.decimal_digits || 2;
       const conversionRate = data.value?.[from]?.[to];
 
-      console.log({ from, to, value, conversionRate });
-
       if (conversionRate) {
         const val = value * conversionRate;
         affectedModel.value = val.toFixed(decimal_digits);
