@@ -74,16 +74,8 @@
 </template>
 
 <script setup lang="ts">
-import {
-  ref,
-  toRefs,
-  computed,
-  useTemplateRef,
-  reactive,
-  watch,
-  onMounted,
-} from "vue";
 import { onClickOutside } from "~/composables/onClickOutside";
+import { ref, toRefs, computed, useTemplateRef, onMounted } from "vue";
 import { CurrencyCode, useCurrency } from "~/composables/useCurrency";
 import { CurrencyConfig, CurrencyInputModel, ListParams, Size } from "~/types";
 
@@ -171,7 +163,8 @@ const listHeight = computed(
 const animationName = computed(() => listConfig.value.animationName || "fade");
 
 const switchDropdown = (value?: boolean) => {
-  if (listConfig.value.openBlocked) return;
+  if (listConfig?.value.openBlocked || filteredCurrencies.value.length <= 1)
+    return;
   dropdownOpen.value = value != null ? value : !dropdownOpen.value;
 };
 
