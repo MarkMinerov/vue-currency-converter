@@ -1,12 +1,35 @@
 <template>
-  <div class="currency-converter">
+  <div class="currency-converter" :class="sizeClass">
     <slot name="left-input">
       <CurrencyInput
         ref="leftInput"
         :size="size"
-        :initialCode="defaultCodes[0]"
+        :initialCode="modelValue.currencies[0]"
         :listConfig="listConfig.left"
-      />
+        :disabled="disabled"
+        @focus="modelValue.hasFocus[0] = true"
+        @blur="modelValue.hasFocus[0] = false"
+      >
+        <template #header:before>
+          <slot name="header:before" />
+        </template>
+
+        <template #header:after>
+          <slot name="header:after" />
+        </template>
+
+        <template #item:before>
+          <slot name="item:before" />
+        </template>
+
+        <template #item:after>
+          <slot name="item:after" />
+        </template>
+
+        <template #header:chevron>
+          <slot name="header:chevron" />
+        </template>
+      </CurrencyInput>
     </slot>
 
     <slot name="separator">
@@ -19,15 +42,45 @@
       <CurrencyInput
         ref="rightInput"
         :size="size"
-        :initialCode="defaultCodes[1]"
+        :initialCode="modelValue.currencies[1]"
         :listConfig="listConfig.right"
-      />
+        :disabled="disabled"
+        @focus="modelValue.hasFocus[1] = true"
+        @blur="modelValue.hasFocus[1] = false"
+      >
+        <template #header:before>
+          <slot name="header:before" />
+        </template>
+
+        <template #header:after>
+          <slot name="header:after" />
+        </template>
+
+        <template #item:before>
+          <slot name="item:before" />
+        </template>
+
+        <template #item:after>
+          <slot name="item:after" />
+        </template>
+
+        <template #header:chevron>
+          <slot name="header:chevron" />
+        </template>
+      </CurrencyInput>
     </slot>
   </div>
 </template>
 
 <script setup lang="ts">
-import { type Ref, computed, toRefs, useTemplateRef, onMounted } from "vue";
+import {
+  type Ref,
+  computed,
+  reactive,
+  toRefs,
+  useTemplateRef,
+  watch,
+} from "vue";
 import { type CurrencyCode } from "~/composables/useCurrency";
 import { useCurrencyAffect } from "~/composables/useCurrencyAffect";
 import {
@@ -35,6 +88,8 @@ import {
   ApiData,
   DefaultApiResponse,
   ListParams,
+  Model,
+  RequiredModel,
   Size,
 } from "~/types";
 
@@ -50,15 +105,18 @@ const right = useTemplateRef<CurrencyInputInstance>("rightInput");
 
 const emit = defineEmits<{
   (e: "setCurrencies", value: [CurrencyCode, CurrencyCode]): void;
+  (e: "request:error", error: unknown): void;
+  (e: "request:success", data: Awaited<ReturnType<typeof getRates>>): void;
+  (e: "update:modelValue", value: Model): void;
 }>();
 
 const props = withDefaults(
   defineProps<
-    Partial<{
+    { modelValue: Model } & Partial<{
       size: Size;
       disableSizing: boolean;
-      defaultCodes: CurrencyCode[];
       enableSwap: boolean;
+      disableInputOnUnknown: boolean;
       listConfig: Partial<{
         left: Partial<ListParams>;
         right: Partial<ListParams>;
@@ -67,8 +125,14 @@ const props = withDefaults(
     }>
   >(),
   {
-    defaultCodes: () => ["USD", "EUR"],
+    modelValue: () => ({
+      currencies: ["USD", "EUR"],
+      values: [0, 0],
+      formatValues: ["", ""],
+      loading: false,
+    }),
     enableSwap: true,
+    disableInputOnUnknown: true,
     listConfig: () => ({
       left: {},
       right: {},
@@ -90,22 +154,68 @@ const props = withDefaults(
   }
 );
 
-const { defaultCodes, listConfig, api } = toRefs(props);
+const { listConfig, api, size, disableInputOnUnknown } = toRefs(props);
 const { data, getRates } = useApi(api);
+
+const modelValue = reactive<RequiredModel>({
+  currencies: props.modelValue.currencies || ["USD", "EUR"],
+  values: props.modelValue.values || [0, 0],
+  formatValues: props.modelValue.formatValues || ["", ""],
+  loading: props.modelValue.loading || false,
+  hasFocus: [false, false],
+  ...props.modelValue,
+});
+
+emit("update:modelValue", modelValue);
+
+const sizeClass = computed(() => `currency-converter--${size.value}`);
+const disabled = computed(() => unknown.value && disableInputOnUnknown.value);
 
 const swapCurrencies = () => {};
 
-onMounted(() => {
-  defaultCodes.value.forEach(async (code) => await getRates(code));
-});
+const requestRates = async (code: CurrencyCode) => {
+  try {
+    modelValue.loading = true;
+    const data = await getRates(code);
+    emit("request:success", data);
+  } catch (e) {
+    emit("request:error", e);
+  } finally {
+    modelValue.loading = false;
+  }
+};
 
-useCurrencyAffect({
+const leftModel = computed(() => left.value?.model);
+const rightModel = computed(() => right.value?.model);
+
+watch(
+  () => [leftModel.value?.currency, rightModel.value?.currency],
+  (newVal) => {
+    const data = [newVal[0], newVal[1]] as [CurrencyCode, CurrencyCode];
+    modelValue.currencies = data;
+    emit("setCurrencies", data);
+    newVal
+      .filter((code): code is CurrencyCode => code != null)
+      .forEach(async (code) => requestRates(code));
+  }
+);
+
+watch(
+  () => [leftModel.value?.inputValue!, rightModel.value?.inputValue!],
+  (newVal) => {
+    modelValue.values = newVal.map((v) => parseFloat(v) || 0) as [
+      number,
+      number
+    ];
+  }
+);
+
+const { unknown } = useCurrencyAffect({
   data,
   inputElement: computed(() => left.value?.currencyInput as HTMLInputElement),
-  useFormat: computed(() => listConfig.value.left?.useFormat ?? true),
   currencies: computed(() => ({
-    from: left.value?.model.currency ?? defaultCodes.value[0],
-    to: right.value?.model.currency ?? defaultCodes.value[1],
+    from: left.value?.model.currency!,
+    to: right.value?.model.currency!,
   })),
   affectedModel: computed({
     get: () => right.value?.model.inputValue || "",
@@ -113,20 +223,31 @@ useCurrencyAffect({
       if (right.value) right.value.model.inputValue = val;
     },
   }),
+  modelValue: computed({
+    get: () => modelValue.values[0],
+    set: (val) => {
+      modelValue.values[0] = val;
+    },
+  }),
 });
 
 useCurrencyAffect({
   data,
   inputElement: computed(() => right.value?.currencyInput as HTMLInputElement),
-  useFormat: computed(() => listConfig.value.right?.useFormat ?? true),
   currencies: computed(() => ({
-    from: right.value?.model.currency ?? defaultCodes.value[1],
-    to: left.value?.model.currency ?? defaultCodes.value[0],
+    from: right.value?.model.currency!,
+    to: left.value?.model.currency!,
   })),
   affectedModel: computed({
     get: () => left.value?.model.inputValue || "",
     set: (val) => {
       if (left.value) left.value.model.inputValue = val;
+    },
+  }),
+  modelValue: computed({
+    get: () => modelValue.values[1],
+    set: (val) => {
+      modelValue.values[1] = val;
     },
   }),
 });

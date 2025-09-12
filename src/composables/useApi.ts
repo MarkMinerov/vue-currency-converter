@@ -11,7 +11,9 @@ export const useApi = (api: Ref<Partial<ApiConfig>>) => {
       const url = api.value.url.builder(api.value.url.base, code);
       const response = await fetch(url, api.value.fetchOptions);
       const json = await response.json();
-      api.value.setter(json, data);
+
+      if (response.ok) api.value.setter(json, data);
+      else return Promise.reject(json);
     }
 
     return Promise.resolve(data.value);

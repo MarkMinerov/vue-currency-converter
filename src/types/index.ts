@@ -17,7 +17,7 @@ export type ListParams = {
   availableCurrencies: CurrencyCode[];
   animationName: string;
   reverse: boolean;
-  useFormat: boolean;
+  needFormat: boolean;
   openBlocked: boolean;
   item: {
     hideCode: boolean;
@@ -40,6 +40,16 @@ export type ApiConfig = {
   };
   setter: (response: any, mutable: Ref<ApiData>) => void;
 };
+
+export interface RequiredModel {
+  currencies: [CurrencyCode, CurrencyCode];
+  values: [number, number];
+  formatValues: [string, string];
+  hasFocus: [boolean, boolean];
+  loading: boolean;
+}
+
+export type Model = Partial<RequiredModel>;
 
 export type InternalApiData = Ref<ApiData>;
 

@@ -2,10 +2,14 @@
   <div
     class="currency-input"
     ref="currencyComp"
-    :class="{
-      open: dropdownOpen && !listConfig?.openBlocked,
-      reverse: listConfig?.reverse,
-    }"
+    :class="[
+      size,
+      {
+        open: dropdownOpen && !listConfig?.openBlocked,
+        reverse: listConfig?.reverse,
+        disabled,
+      },
+    ]"
   >
     <input
       type="text"
@@ -13,20 +17,27 @@
       :value="model.inputValue"
       :placeholder="currencyConfig.symbol"
       @input="setVal($event)"
+      :disabled="disabled"
+      @focus="emit('focus')"
+      @blur="emit('blur')"
     />
 
     <div class="curr-selector">
       <div class="curr-header" @click="switchDropdown()">
+        <slot name="header:before" />
         <span class="curr-code">{{ model.currency }}</span>
-        <svg
-          v-if="!listConfig?.openBlocked"
-          class="curr-header__chevron"
-          viewBox="0 0 16 16"
-        >
-          <path
-            d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"
-          />
-        </svg>
+        <slot name="header:chevron">
+          <svg
+            v-if="!listConfig?.openBlocked && filteredCurrencies.length > 1"
+            class="curr-header__chevron"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M1.646 4.646a.5.5 0 0 1 .708 0L8 10.293l5.646-5.647a.5.5 0 0 1 .708.708l-6 6a.5.5 0 0 1-.708 0l-6-6a.5.5 0 0 1 0-.708"
+            />
+          </svg>
+        </slot>
+        <slot name="header:after" />
       </div>
 
       <Transition :name="animationName">
@@ -43,6 +54,7 @@
             :class="{ selected: item.code === model.currency }"
             @click="selectItem(item)"
           >
+            <slot name="item:before" />
             <span v-if="!listConfig?.item?.hideCode" class="item-row__code">{{
               item.code
             }}</span>
@@ -54,6 +66,7 @@
               class="item-row__symbol"
               >{{ item.symbol }}</span
             >
+            <slot name="item:after" />
           </div>
         </div>
       </Transition>
@@ -62,7 +75,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, toRefs, computed, useTemplateRef, Reactive, reactive } from "vue";
+import { ref, toRefs, computed, useTemplateRef, reactive } from "vue";
 import { onClickOutside } from "~/composables/onClickOutside";
 import { CurrencyCode, useCurrency } from "~/composables/useCurrency";
 import { CurrencyConfig, ListParams, Size } from "~/types";
@@ -76,14 +89,16 @@ const props = withDefaults(
       listConfig: Partial<ListParams>;
       itemHeight: number;
       size: Size;
+      disabled: boolean;
     }>
   >(),
   {
     initialCode: "USD",
+    disabled: false,
     listConfig: () => ({
       itemsPerView: DEFAULT_ITEMS_PER_VIEW,
       reverse: false,
-      useFormat: true,
+      needFormat: true,
       openBlocked: false,
       item: {
         hideCode: false,
@@ -106,13 +121,15 @@ const emit = defineEmits<{
     e: "update:selectCurrency",
     value: { newVal: CurrencyCode; oldVal: CurrencyCode }
   ): void;
+  (e: "focus"): void;
+  (e: "blur"): void;
 }>();
 
 const rowSizes = {
   sm: 32,
   md: 36,
-  lg: 40,
-  xl: 48,
+  lg: 48,
+  xl: 52,
   xxl: 56,
 };
 
@@ -123,7 +140,7 @@ onClickOutside(currencyComp, () => {
   dropdownOpen.value = false;
 });
 
-const { listConfig, size } = toRefs(props);
+const { listConfig, size, disabled } = toRefs(props);
 const dropdownOpen = ref(false);
 
 const model = reactive({
@@ -173,6 +190,8 @@ defineExpose({
 </script>
 
 <style lang="scss" scoped>
+@use "~/assets/styles/layout.scss" as *;
+
 .currency-input {
   position: relative;
   display: flex;
@@ -206,6 +225,11 @@ defineExpose({
     font-size: var(--currency-input-field-font-size, 1rem);
     padding: var(--currency-input-padding, 0.5rem);
     border-right: var(--tel-input-border, none);
+    width: var(--currency-input-field-width, 100%);
+
+    &:disabled {
+      cursor: not-allowed;
+    }
   }
 
   .curr-selector {
@@ -220,6 +244,7 @@ defineExpose({
 
       .curr-code {
         color: var(--currency-input-code-color, #000);
+        font-size: var(--currency-input-code-font-size, 1rem);
       }
 
       &__chevron {
