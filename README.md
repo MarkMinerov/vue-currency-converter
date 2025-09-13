@@ -30,7 +30,7 @@ pnpm i vue-currency-converter
 
 ## Playground 🚀
 
-[Open the online Playground on StackBlitz](https://stackblitz.com/edit/vue-currency-converter?file=src%2FApp.vue)
+[Open the online Playground on StackBlitz](https://stackblitz.com/edit/vue3-currency-converter?file=src%2FApp.vue)
 
 Try out the component live, tweak props, and experiment with integration directly in your browser.
 
