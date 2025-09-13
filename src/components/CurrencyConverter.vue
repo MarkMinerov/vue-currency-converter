@@ -92,7 +92,7 @@ const emit = defineEmits<{
   (e: "setCurrencies", value: [CurrencyCode, CurrencyCode]): void;
   (e: "update:modelValue", value: Model): void;
   (e: "request:error", error: unknown): void;
-  (e: "request:success", data: Awaited<ReturnType<typeof getRates>>): void;
+  (e: "request:success", data: ApiData): void;
 }>();
 
 const props = withDefaults(
@@ -176,7 +176,7 @@ const requestRates = async (code: CurrencyCode) => {
   try {
     modelValue.loading = true;
     const data = await getRates(code);
-    emit("request:success", data);
+    emit("request:success", data as ApiData);
   } catch (e) {
     emit("request:error", e);
   } finally {

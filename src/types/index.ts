@@ -31,9 +31,7 @@ export interface CurrencyInputModel {
   value: string;
 }
 
-export type ApiData = Partial<
-  Record<CurrencyCode, Record<CurrencyCode, number>>
->;
+export type ApiData = Partial<Record<string, Record<string, number>>>;
 
 export type ApiConfig = {
   cache: number;
@@ -59,7 +57,7 @@ export type InternalApiData = Ref<ApiData>;
 
 export interface DefaultApiResponse {
   base_code: CurrencyCode;
-  rates: Record<CurrencyCode, number>;
+  rates: Record<string, number>;
 }
 
 export type Size = "sm" | "md" | "lg" | "xl" | "xxl";
