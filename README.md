@@ -69,7 +69,7 @@ const model = ref<Model>({
 
 | Prop         | Type                  | Default   | Description                                                                                                                             |
 | ------------ | --------------------- | --------- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| `modelValue` | `CurrencyInputModel`  | — (req)   | Bound value for `v-model`. Holds the current state of the currency input.                                                               |
+| `modelValue` | `Model`               | — (req)   | Bound value for `v-model`. Holds the current state of the currency input.                                                               |
 | `listConfig` | `Partial<ListParams>` | see below | Configuration for the currency list / behavior. Any subset of `ListParams`. Unspecified fields fall back to component defaults (below). |
 | `itemHeight` | `number`              | —         | Fixed pixel height for each item row (overrides CSS var–driven sizing if provided).                                                     |
 | `size`       | `Size`                | —         | Component size token used by your design system (e.g., `sm`, `md`, …). Controls overall spacing/row heights via CSS vars.               |
@@ -230,5 +230,3 @@ Your feedback will help improve and stabilize the component for production use.
 ## License
 
 MIT © 2025 Mark Minerov
-
-**TODO**

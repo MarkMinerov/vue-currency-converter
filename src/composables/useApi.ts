@@ -20,7 +20,8 @@ export const useApi = (api: Ref<Partial<ApiConfig>>) => {
   };
 
   const getRates = async (code: CurrencyCode) => {
-    if (!code) return; // TODO: add warning
+    if (!code)
+      return console.warn("[vue-currency-converter] No currency code provided");
 
     if (cache.value[code]) {
       const lastCacheTime = cache.value[code];
