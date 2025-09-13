@@ -1,5 +1,15 @@
 # 💸 Vue Currency Converter
 
+[![npm version](https://img.shields.io/npm/v/vue-currency-converter)](https://www.npmjs.com/package/vue-currency-converter)
+[![npm downloads](https://img.shields.io/npm/dm/vue-currency-converter)](https://www.npmjs.com/package/vue-currency-converter)
+[![CI](https://github.com/MarkMinerov/vue-currency-converter/actions/workflows/release.yml/badge.svg)](https://github.com/MarkMinerov/vue-currency-converter/actions)
+[![Docs](https://img.shields.io/badge/docs-vitepress-blue)](https://markminerov.github.io/vue-currency-converter/)
+![GitHub Repo stars](https://img.shields.io/github/stars/MarkMinerov/vue-currency-converter?style=social)
+[![License](https://img.shields.io/npm/l/vue-currency-converter)](./LICENSE)
+[![bundle size](https://img.shields.io/bundlephobia/minzip/vue-currency-converter)](https://bundlephobia.com/package/vue-currency-converter)
+![vue3](https://img.shields.io/badge/vue-3.x-brightgreen.svg)
+[![TypeScript](https://img.shields.io/badge/TS-TypeScript-blue)](https://www.typescriptlang.org/)
+
 Vue 3.x component for currency conversion with customizable styles and configurable API endpoints for data fetching.
 
 ## Install
@@ -198,7 +208,7 @@ Contributions are very welcome! You can help by fixing bugs, improving docs, or 
 2. `npm i` to install dependencies
 3. `npm watch:build` to build the project JIT
 4. `npm link` in directory folder
-5. `npm link vue-tel-num-input` in your project directory
+5. `npm link vue-currency-converter` in your project directory
 6. Commit your changes and push your branch 😍
 7. Create Pull-Request
 8. Thank you
@@ -220,3 +230,5 @@ Your feedback will help improve and stabilize the component for production use.
 ## License
 
 MIT © 2025 Mark Minerov
+
+**TODO**
